@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Gastos</title>
+<meta name="theme-color" content="#ffffff">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Gastos">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
+  html,body{height:100%;overflow:hidden}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,system-ui,"Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    background:#E9E9EC;color:#111;
+    display:flex;align-items:center;justify-content:center;
+  }
+  /* mobile column, centered on desktop */
+  #app{
+    width:100%;max-width:440px;height:100dvh;max-height:100dvh;
+    background:#fff;display:flex;flex-direction:column;position:relative;overflow:hidden;
+    padding-top:env(safe-area-inset-top);
+  }
+  @media(min-width:480px){
+    #app{height:min(100dvh,900px);border-radius:44px;box-shadow:0 30px 70px rgba(0,0,0,.18)}
+  }
+  .header{padding:16px 24px 6px;display:flex;align-items:center;justify-content:space-between}
+  .title{font-size:25px;font-weight:700;letter-spacing:-.5px}
+  .datepill{display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:100px;background:#F1F1F4;cursor:pointer;user-select:none}
+  .datepill span{font-size:14px;font-weight:600;color:#555}
+  .fill{flex:1;display:flex;flex-direction:column;min-height:0}
+  .amountwrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 24px;min-height:0}
+  .caps{font-size:12.5px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:#B0B0B8}
+  .amount{display:flex;align-items:baseline;margin-top:8px}
+  .amount .cur{font-size:36px;font-weight:600;margin-right:4px}
+  .amount .num{font-size:64px;font-weight:700;letter-spacing:-2px;line-height:1}
+  .statusrow{height:22px;margin-top:14px;display:flex;align-items:center;gap:12px}
+  .toast{font-size:15px;font-weight:600;color:#34C759}
+  .cancel{font-size:14px;font-weight:600;color:#E5484D;cursor:pointer;text-decoration:underline}
+  .cats{padding:0 16px 4px}
+  .catlabel{font-size:12px;font-weight:600;color:#B0B0B8;margin:0 8px 10px}
+  .catgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+  .chip{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 2px;border-radius:16px;cursor:pointer;user-select:none;transition:transform .08s}
+  .chip:active{transform:scale(.94)}
+  .chip span{font-size:11px;font-weight:600}
+  .keypad{padding:12px 20px 4px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .key{height:54px;display:flex;align-items:center;justify-content:center;border-radius:16px;background:#F5F5F7;font-size:26px;font-weight:600;cursor:pointer;user-select:none;transition:background .08s}
+  .key:active{background:#E7E7EC}
+  .tabbar{display:flex;padding:6px 24px calc(20px + env(safe-area-inset-bottom));border-top:1px solid #F0F0F2;background:#fff}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0;cursor:pointer;user-select:none}
+  .tab span{font-size:11px;font-weight:600}
+  .resumen{flex:1;overflow:auto;padding:8px 24px 20px;-webkit-overflow-scrolling:touch}
+  .total{text-align:center;margin:14px 0 6px}
+  .total .big{font-size:50px;font-weight:700;letter-spacing:-2px;margin-top:4px}
+  .donutwrap{position:relative;width:180px;height:180px;margin:8px auto 6px}
+  .donutcenter{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .legrow{display:flex;align-items:center;justify-content:space-between;padding:11px 4px;border-bottom:1px solid #F2F2F4}
+  .dot{width:11px;height:11px;border-radius:4px}
+  .movrow{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid #F5F5F7;cursor:pointer}
+  .movicon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .trash{width:32px;height:32px;border-radius:9px;background:#FBEDED;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer}
+  .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center}
+  .sheet-backdrop{position:absolute;inset:0;z-index:100;background:rgba(0,0,0,.28);display:flex;flex-direction:column;justify-content:flex-end;animation:fade .18s ease}
+  .sheet{background:#fff;border-radius:28px 28px 0 0;padding:12px 20px calc(34px + env(safe-area-inset-bottom));animation:rise .24s cubic-bezier(.2,.8,.2,1)}
+  .grab{width:38px;height:5px;border-radius:100px;background:#E0E0E4;margin:2px auto 16px}
+  .sheetgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  @keyframes rise{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  @media(max-height:680px){
+    .amount .num{font-size:46px}
+    .amount .cur{font-size:28px}
+    .key{height:46px}
+    .amountwrap{padding-top:6px}
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var KEY = 'gastos_personales_v1';
+  var META = {
+    comida:     {label:'Comida',     color:'#E8833A', tint:'#FBF2EA', text:'#8A5A2E'},
+    transporte: {label:'Transporte', color:'#3A7DE8', tint:'#EBF1FC', text:'#2A5AAD'},
+    super:      {label:'Súper',      color:'#2FA968', tint:'#EAF6EF', text:'#1E7A49'},
+    casa:       {label:'Casa',       color:'#8B5CF6', tint:'#F2EEFC', text:'#6D3FD1'},
+    cafe:       {label:'Café',       color:'#A0703C', tint:'#F6EFE8', text:'#7A5528'},
+    ocio:       {label:'Ocio',       color:'#E8557F', tint:'#FCECF1', text:'#C23763'},
+    salud:      {label:'Salud',      color:'#E5484D', tint:'#FBEBEB', text:'#C43338'},
+    otros:      {label:'Otros',      color:'#8E8E93', tint:'#F2F2F4', text:'#6E6E73'}
+  };
+  var ICON = {
+    comida:'<path d="M6 2v8M6 10c-1.7 0-3-1.3-3-3V2M9 2v5c0 1.7-1.3 3-3 3M17 2c-1.7 0-3 2-3 5s1.3 4 3 4M17 2v20" stroke="C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+    transporte:'<rect x="4" y="3" width="16" height="14" rx="3" stroke="C" stroke-width="2"/><path d="M4 11h16" stroke="C" stroke-width="2"/><circle cx="8" cy="20" r="1.6" fill="C"/><circle cx="16" cy="20" r="1.6" fill="C"/><path d="M7 17v2M17 17v2" stroke="C" stroke-width="2" stroke-linecap="round"/>',
+    super:'<path d="M3 3h2.5l2 12h10l2-8H7" stroke="C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="20" r="1.6" fill="C"/><circle cx="17" cy="20" r="1.6" fill="C"/>',
+    casa:'<path d="M4 11l8-7 8 7M6 9.5V20h12V9.5" stroke="C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 20v-5h4v5" stroke="C" stroke-width="2" stroke-linecap="round"/>',
+    cafe:'<path d="M4 9h13v5a4 4 0 01-4 4H8a4 4 0 01-4-4V9z" stroke="C" stroke-width="2" stroke-linejoin="round"/><path d="M17 10h2.5a2 2 0 010 4H17M8 3c-.5 1 .5 2 0 3M12 3c-.5 1 .5 2 0 3" stroke="C" stroke-width="2" stroke-linecap="round"/>',
+    ocio:'<path d="M12 3l2.5 5.5L20 9.2l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.7L12 3z" stroke="C" stroke-width="2" stroke-linejoin="round"/>',
+    salud:'<path d="M12 20s-7-4.5-7-9.5A3.5 3.5 0 0112 7a3.5 3.5 0 017 3.5c0 5-7 9.5-7 9.5z" stroke="C" stroke-width="2" stroke-linejoin="round"/>',
+    otros:'<path d="M20.5 13.5l-7 7a2 2 0 01-2.8 0l-7-7A2 2 0 013 12V4.5A1.5 1.5 0 014.5 3H12a2 2 0 011.4.6l7.1 7a2 2 0 010 2.9z" stroke="C" stroke-width="2" stroke-linejoin="round"/><circle cx="8" cy="8" r="1.4" fill="C"/>'
+  };
+  var PRIMARY = ['comida','transporte','super','casa'];
+  var ALL = ['comida','transporte','super','casa','cafe','ocio','salud','otros'];
+  var DAYS = ['Hoy','Ayer','Antier'];
+
+  var state = {
+    tab:'registrar', amount:'', dateOffset:0, toast:'', editingId:null, showMore:false,
+    expenses:[
+      {id:'s1', amount:12000, cat:'comida', off:0},
+      {id:'s2', amount:3200,  cat:'transporte', off:0},
+      {id:'s3', amount:48500, cat:'super', off:0},
+      {id:'s4', amount:8000,  cat:'comida', off:0}
+    ]
+  };
+  var seeded = true;
+  try{
+    var raw = localStorage.getItem(KEY);
+    if(raw){ var d = JSON.parse(raw); if(d && Array.isArray(d.expenses)){ state.expenses = d.expenses; seeded=false; } }
+  }catch(e){}
+
+  var toastTimer = null;
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify({expenses:state.expenses})); }catch(e){} }
+  function fmt(n){ return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.'); }
+  function svg(cat, size, color){
+    return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none">'+ICON[cat].replace(/C/g,color)+'</svg>';
+  }
+  function esc(s){ return String(s); }
+
+  function press(d){
+    if(d==='back') state.amount = state.amount.slice(0,-1);
+    else if(state.amount.length<9){ if(!(state.amount==='' && d==='00')) state.amount += d; }
+    state.toast=''; render();
+  }
+  function register(cat){
+    var val = parseInt(state.amount||'0',10);
+    if(!val){ state.showMore=false; render(); return; }
+    if(state.editingId){
+      state.expenses = state.expenses.map(function(e){ return e.id===state.editingId ? {id:e.id,amount:val,cat:cat,off:e.off} : e; });
+      state.toast='✓ Gasto actualizado';
+    }else{
+      var id = Date.now()+'-'+Math.random().toString(36).slice(2,7);
+      state.expenses = state.expenses.concat([{id:id,amount:val,cat:cat,off:state.dateOffset}]);
+      state.toast='✓ $'+fmt(val)+' · '+META[cat].label;
+    }
+    state.amount=''; state.editingId=null; state.showMore=false;
+    save(); render();
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ state.toast=''; render(); }, 2200);
+  }
+  function editItem(id){
+    var it = state.expenses.find(function(e){return e.id===id;}); if(!it) return;
+    state.tab='registrar'; state.amount=String(it.amount); state.editingId=id;
+    state.dateOffset=it.off; state.toast=''; state.showMore=false; render();
+  }
+  function deleteItem(id){
+    state.expenses = state.expenses.filter(function(e){return e.id!==id;});
+    if(state.editingId===id) state.editingId=null;
+    save(); render();
+  }
+
+  function chip(cat, cls){
+    var m=META[cat];
+    return '<div class="chip" data-action="reg" data-cat="'+cat+'" style="background:'+m.tint+'">'+
+      svg(cat,cls==='big'?24:22,m.color)+
+      '<span style="color:'+m.text+'">'+m.label+'</span></div>';
+  }
+
+  function donut(today, total){
+    var byCat={}; today.forEach(function(e){byCat[e.cat]=(byCat[e.cat]||0)+e.amount;});
+    var order=Object.keys(byCat).sort(function(a,b){return byCat[b]-byCat[a];});
+    var circ=2*Math.PI*100, acc=0, segs='', legend='';
+    order.forEach(function(cat){
+      var amt=byCat[cat], frac=total?amt/total:0, arc=frac*circ;
+      segs+='<circle cx="130" cy="130" r="100" fill="none" stroke="'+META[cat].color+'" stroke-width="30" stroke-dasharray="'+arc.toFixed(2)+' '+circ.toFixed(2)+'" stroke-dashoffset="'+(-acc).toFixed(2)+'"/>';
+      acc+=arc;
+      legend+='<div class="legrow"><div style="display:flex;align-items:center;gap:11px"><div class="dot" style="background:'+META[cat].color+'"></div><span style="font-size:16px;font-weight:500;color:#222">'+META[cat].label+'</span></div>'+
+        '<div style="display:flex;align-items:center;gap:10px"><span style="font-size:13px;font-weight:600;color:#B0B0B8">'+Math.round(frac*100)+'%</span><span style="font-size:16px;font-weight:700;min-width:76px;text-align:right">$'+fmt(amt)+'</span></div></div>';
+    });
+    return {
+      donut:'<div class="donutwrap"><svg width="180" height="180" viewBox="0 0 260 260"><g transform="rotate(-90 130 130)"><circle cx="130" cy="130" r="100" fill="none" stroke="#F0F0F2" stroke-width="30"/>'+segs+'</g></svg>'+
+        '<div class="donutcenter"><div style="font-size:12px;font-weight:600;color:#B0B0B8">Gastos</div><div style="font-size:28px;font-weight:700">'+today.length+'</div></div></div>',
+      legend:legend
+    };
+  }
+
+  function movements(today){
+    var rows='';
+    today.slice().reverse().forEach(function(e){
+      var m=META[e.cat];
+      rows+='<div class="movrow" data-action="edit" data-id="'+e.id+'">'+
+        '<div class="movicon" style="background:'+m.tint+'"><div style="width:12px;height:12px;border-radius:4px;background:'+m.color+'"></div></div>'+
+        '<div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:600">'+m.label+'</div></div>'+
+        '<span style="font-size:16px;font-weight:700">$'+fmt(e.amount)+'</span>'+
+        '<div class="trash" data-action="delete" data-id="'+e.id+'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V4.5h6V7M6 7l1 13h10l1-13" stroke="#E5484D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>'+
+        '</div>';
+    });
+    return rows;
+  }
+
+  function render(){
+    var s=state, editing=!!s.editingId;
+    var dateLabel=DAYS[s.dateOffset], dateLower=dateLabel.toLowerCase();
+    var today=s.expenses.filter(function(e){return e.off===s.dateOffset;});
+    var total=today.reduce(function(a,e){return a+e.amount;},0);
+
+    var html='';
+    // header
+    html+='<div class="header"><div class="title">'+(s.tab==='registrar'?(editing?'Editar gasto':'Registrar gasto'):'Resumen')+'</div>'+
+      '<div class="datepill" data-action="date"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="3" y="4.5" width="18" height="17" rx="3" stroke="#555" stroke-width="2"/><path d="M3 9h18M8 2.5v4M16 2.5v4" stroke="#555" stroke-width="2" stroke-linecap="round"/></svg><span>'+dateLabel+'</span></div></div>';
+
+    if(s.tab==='registrar'){
+      html+='<div class="fill">';
+      html+='<div class="amountwrap"><div class="caps" style="color:'+(editing?'#E5844A':'#B0B0B8')+'">'+(editing?'Editando gasto':'Monto del gasto')+'</div>'+
+        '<div class="amount" style="color:'+(s.amount===''?'#D0D0D6':'#111')+'"><span class="cur">$</span><span class="num">'+(s.amount===''?'0':fmt(parseInt(s.amount,10)))+'</span></div>'+
+        '<div class="statusrow"><span class="toast">'+s.toast+'</span>'+(editing?'<span class="cancel" data-action="cancel">Cancelar edición</span>':'')+'</div></div>';
+      // categories
+      html+='<div class="cats"><div class="catlabel">TOCA UNA CATEGORÍA PARA '+(editing?'ACTUALIZAR':'GUARDAR')+'</div><div class="catgrid">';
+      PRIMARY.forEach(function(c){ html+=chip(c); });
+      html+='<div class="chip" data-action="more" style="background:#F3F3F5"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="5" r="2" fill="#8E8E93"/><circle cx="12" cy="5" r="2" fill="#8E8E93"/><circle cx="19" cy="5" r="2" fill="#8E8E93"/><circle cx="5" cy="12" r="2" fill="#8E8E93"/><circle cx="12" cy="12" r="2" fill="#8E8E93"/><circle cx="19" cy="12" r="2" fill="#8E8E93"/></svg><span style="color:#6E6E73">Más</span></div>';
+      html+='</div></div>';
+      // keypad
+      html+='<div class="keypad">';
+      ['1','2','3','4','5','6','7','8','9','00','0','back'].forEach(function(d){
+        html+='<div class="key" data-action="'+(d==='back'?'back':'digit')+'" data-val="'+d+'">'+(d==='back'?'⌫':d)+'</div>';
+      });
+      html+='</div></div>';
+    } else {
+      html+='<div class="resumen"><div class="total"><div class="caps">Total gastado '+dateLower+'</div><div class="big">$'+fmt(total)+'</div></div>';
+      if(today.length>0){
+        var dn=donut(today,total);
+        html+=dn.donut+'<div style="margin-top:10px">'+dn.legend+'</div>';
+        html+='<div style="margin-top:22px"><div class="catlabel" style="margin:0 4px 4px">MOVIMIENTOS · TOCA PARA EDITAR</div>'+movements(today)+'</div>';
+      } else {
+        html+='<div class="empty"><div style="width:66px;height:66px;border-radius:100px;background:#F5F5F7;display:flex;align-items:center;justify-content:center;margin-bottom:16px"><svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M12 6v6l4 2" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="#C7C7CC" stroke-width="2"/></svg></div>'+
+          '<div style="font-size:17px;font-weight:600;color:#333">Sin gastos '+dateLower+'</div><div style="font-size:14px;color:#A0A0A8;margin-top:4px">Registra tu primer gasto en la otra pestaña</div></div>';
+      }
+      html+='</div>';
+    }
+
+    // tabbar
+    var cR=s.tab==='registrar'?'#111':'#C2C2C8', cS=s.tab==='resumen'?'#111':'#C2C2C8';
+    html+='<div class="tabbar">'+
+      '<div class="tab" data-action="tab" data-tab="registrar"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="'+cR+'" stroke-width="2"/><path d="M12 8v8M8 12h8" stroke="'+cR+'" stroke-width="2" stroke-linecap="round"/></svg><span style="color:'+cR+'">Registrar</span></div>'+
+      '<div class="tab" data-action="tab" data-tab="resumen"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 3a9 9 0 109 9h-9V3z" stroke="'+cS+'" stroke-width="2" stroke-linejoin="round"/><path d="M12 3a9 9 0 016.4 2.6" stroke="'+cS+'" stroke-width="2" stroke-linecap="round"/></svg><span style="color:'+cS+'">Resumen</span></div>'+
+      '</div>';
+
+    // sheet
+    if(s.showMore){
+      html+='<div class="sheet-backdrop" data-action="closemore"><div class="sheet" data-action="stop"><div class="grab"></div><div style="font-size:18px;font-weight:700;margin:0 4px 14px">Elige categoría</div><div class="sheetgrid">';
+      ALL.forEach(function(c){ html+=chip(c,'big'); });
+      html+='</div></div></div>';
+    }
+
+    document.getElementById('app').innerHTML=html;
+  }
+
+  document.getElementById('app').addEventListener('click', function(ev){
+    var t=ev.target.closest('[data-action]'); if(!t) return;
+    var a=t.getAttribute('data-action');
+    if(a==='digit') press(t.getAttribute('data-val'));
+    else if(a==='back') press('back');
+    else if(a==='reg') register(t.getAttribute('data-cat'));
+    else if(a==='tab'){ state.tab=t.getAttribute('data-tab'); render(); }
+    else if(a==='date'){ state.dateOffset=(state.dateOffset+1)%3; state.toast=''; state.editingId=null; state.amount=''; render(); }
+    else if(a==='more'){ state.showMore=true; render(); }
+    else if(a==='closemore'){ state.showMore=false; render(); }
+    else if(a==='stop'){ ev.stopPropagation(); }
+    else if(a==='edit') editItem(t.getAttribute('data-id'));
+    else if(a==='delete'){ ev.stopPropagation(); deleteItem(t.getAttribute('data-id')); }
+    else if(a==='cancel'){ state.editingId=null; state.amount=''; state.toast=''; render(); }
+  });
+
+  render();
+
+  // register service worker for offline / installability
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('sw.js').catch(function(){});
+    });
+  }
+})();
+</script>
+</body>
+</html>
